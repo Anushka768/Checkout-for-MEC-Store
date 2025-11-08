@@ -1,0 +1,259 @@
+# --------------------------
+# Import required libraries
+# --------------------------
+import sqlite3    # Allows Python to connect and interact with SQLite databases
+import difflib    # Helps suggest correct item names if the user makes a typo
+
+# --------------------------
+# Connect to SQLite database
+# --------------------------
+conn = sqlite3.connect("store.db")  # Connects to (or creates) a database file named 'store.db'
+cur = conn.cursor()                 # Cursor object allows us to execute SQL commands
+
+# --------------------------
+# Create the purchases table if it doesn't exist
+# --------------------------
+cur.execute("""
+CREATE TABLE IF NOT EXISTS purchases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    team_name TEXT,
+    visit_number INTEGER,
+    items TEXT,
+    total REAL,
+    total_items INTEGER,
+    total_spent REAL
+)
+""")
+
+# --------------------------
+# Define item prices
+# --------------------------
+item_prices = {               # Dictionary mapping item names to their price per unit
+    "popsicle sticks": 0.25,
+    "wooden skewers": 0.25,
+    "toothpicks": 0.1,
+    "drinking straws": 0.15,
+    "string & twine": 0.5,
+    "plastic bags": 0.2,
+    "trash bags": 0.2,
+    "cellophane bags": 0.2,
+    "bubble wrap": 0.3,
+    "newspaper": 0.1,
+    "magazines": 0.1,
+    "tarp": 1.5,
+    "plastic tablecloths": 1.5,
+    "aluminum foil": 0.4,
+    "cling wrap": 0.4,
+    "parchment paper": 0.4,
+    "cardboard sheets": 0.5,
+    "construction paper": 0.2,
+    "shelf liner": 0.6,
+    "foam sheets": 0.75,
+    "styrofoam": 0.75,
+    "duct tape": 1.25,
+    "masking tape": 1.25,
+    "binder clips": 0.25,
+    "clothespins": 0.25,
+    "rubber bands": 0.1,
+    "twist ties": 0.1,
+    "zip ties": 0.15,
+    "pipe cleaners": 0.2,
+    "paper clips": 0.1,
+    "thumb tacks": 0.15,
+    "foam packing material": 0.2,
+    "cotton pads": 0.2,
+    "sponges": 0.5,
+    "towels": 1,
+    "old rags": 1,
+    "plastic cups": 0.2,
+    "balloons": 0.15,
+    "labels": 0.1,
+    "old cds": 0.2,
+    "old dvds": 0.2,
+    "ziplock bags": 0.2,
+    "syringes": 0.5,
+    "pasta shells": 0.1,
+    "plastic cutlery": 0.15,
+    "wood cutlery": 0.15,
+    "water spray": 1,
+    "fan": 5,
+    "decorative tape": 0.75,
+    "jute rolls": 1,
+    "wrapping tissue": 0.3,
+    "rubber pipe pieces": 1,
+    "pvc pipe pieces": 1,
+    "velcro strips": 0.5,
+    "snap buttons": 0.5,
+    "plastic bottles": 0.25,
+    "recycled plastic containers": 0.2,
+    "index cards": 0.15,
+    "old greeting cards": 0.15,
+    "old clothes": 1,
+    "clear vinyl tubing": 2,
+    "plant trays": 0.75,
+    "miscellaneous": 0.3
+}
+
+print("\n==== JUNIOR DESIGN STORE CHECKOUT ====\n")  # Header for the program
+
+# --------------------------
+# Main menu loop
+# --------------------------
+while True:  # Infinite loop to keep the menu running until the user chooses to exit
+    print("\nMenu:")
+    print("1. New purchase")          # Option to create a new purchase
+    print("2. View team summary")    # Option to view past visits and totals for a team
+    print("3. Exit")                  # Option to quit the program
+    choice = input("Choose an option: ").strip()  # Get user input and remove extra spaces
+
+    # --------------------------
+    # Option 1: New Purchase
+    # --------------------------
+    if choice == "1":
+        team = input("Enter team name: ").strip()  # Ask for team name
+
+        # Automatically calculate next visit number
+        cur.execute("SELECT MAX(visit_number) FROM purchases WHERE team_name=?", (team,))
+        result = cur.fetchone()[0]                 # Get highest previous visit number
+        visit = (result + 1) if result is not None else 1  # First visit = 1 if none exists
+        print(f"\nAutomatically set Visit #{visit} for {team}")
+
+        # Initialize visit details
+        print("\nEnter items one by one (type 'done' when finished):")
+        items = []         # List to store items bought in this visit with quantity
+        visit_total = 0    # Total cost for this visit
+        item_count = 0     # Sum of quantities for this visit
+
+        # --------------------------
+        # Loop to enter items and their quantities
+        # --------------------------
+        while True:
+            item = input("Enter item (or 'done' to finish, 'exit' to cancel): ").strip().lower()
+            
+            if item == "done":
+                break  # Finish this purchase normally
+            elif item == "exit":
+                print("Purchase canceled. Returning to main menu.")
+                visit_total = 0  # Reset totals since they cancelled
+                item_count = 0
+                items = []
+                break  # Exit the item input loop immediately
+
+            # Check if item exists exactly in the price list
+            if item in item_prices:
+                while True:
+                    qty_input = input(f"Enter quantity for '{item}' (or type 'exit' to cancel): ").strip().lower()
+                    if qty_input == "exit":
+                        print("Purchase canceled. Returning to main menu.")
+                        visit_total = 0
+                        item_count = 0
+                        items = []
+                        break  # Exit quantity input and item loop
+                    try:
+                        quantity = int(qty_input)
+                        if quantity <= 0:
+                            print("Quantity must be at least 1. Try again.")
+                            continue
+                        break
+                    except ValueError:
+                        print("Invalid input. Enter a number.")
+
+                visit_total += item_prices[item] * quantity  # Multiply price by quantity
+                items.append(f"{item} x{quantity}")         # Store item and quantity as text
+                item_count += quantity                      # Add to total items bought
+                print(f"Added '{item}' x{quantity} - ${item_prices[item]*quantity:.2f}")
+                continue  # Go back to ask for next item
+
+            # Handle typos using difflib
+            matches = difflib.get_close_matches(item, item_prices.keys(), n=1, cutoff=0.7)
+            if matches:  # If a close match is found
+                correct_item = matches[0]                     # Suggest closest item
+                print(f"Did you mean '{correct_item}'? (y/n): ", end="")
+                if input().lower() == "y":                    # If user agrees
+                    while True:  # Loop until valid quantity is entered
+                        try:
+                            quantity = int(input(f"Enter quantity for '{correct_item}': "))
+                            if quantity <= 0:
+                                print("Quantity must be at least 1. Try again.")
+                                continue
+                            break
+                        except ValueError:
+                            print("Invalid input. Enter a number.")
+                    item = correct_item
+                    visit_total += item_prices[item] * quantity
+                    items.append(f"{item} x{quantity}")
+                    item_count += quantity
+                    print(f"Added '{item}' x{quantity} - ${item_prices[item]*quantity:.2f}")
+                else:
+                    print("Let's try again. Please re-enter item name.")  # Ask again
+                    continue
+            else:
+                # If no match found, show available items
+                print("Item not found. Please check spelling.")
+                print("Available items:", ", ".join(item_prices.keys()))
+
+        # --------------------------
+        # Extra charge for visits beyond first 5
+        # --------------------------
+        extra_charge = 5.0 if visit > 5 else 0.0  # Visits 1–5 free, 6+ = $5 extra
+        if extra_charge > 0:
+            print(f"Extra $5 charge applied for Visit #{visit} (beyond first 5 visits).")
+        visit_total += extra_charge                 # Add extra charge to visit total
+
+        # --------------------------
+        # Calculate running total spent by this team
+        # --------------------------
+        cur.execute("SELECT MAX(total_spent) FROM purchases WHERE team_name=?", (team,))
+        prev_total = cur.fetchone()[0]             # Previous total spent
+        new_total = (prev_total or 0) + visit_total  # Add current visit total
+
+        # --------------------------
+        # Insert visit record into database
+        # --------------------------
+        cur.execute("""
+            INSERT INTO purchases (team_name, visit_number, items, total, total_items, total_spent)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (team, visit, ", ".join(items), visit_total, item_count, new_total))
+        conn.commit()  # Save changes
+
+        # --------------------------
+        # Print receipt
+        # --------------------------
+        print(f"\n✅ Visit #{visit} recorded for {team}.")
+        print(f"Items bought (sum of quantities): {item_count}")
+        print(f"Total this visit: ${visit_total:.2f}")
+        print(f"Total spent so far: ${new_total:.2f}")
+
+    # --------------------------
+    # Option 2: View team summary
+    # --------------------------
+    elif choice == "2":
+        team = input("Enter team name to view: ").strip()
+        cur.execute("SELECT * FROM purchases WHERE team_name=?", (team,))
+        rows = cur.fetchall()  # Fetch all visits for this team
+
+        if rows:  # If records exist
+            print(f"\nSummary for {team}:")
+            for row in rows:
+                print(f"Visit #{row[2]} → Items: {row[3]} | Total: ${row[4]:.2f}")
+            print(f"Overall total spent: ${rows[-1][6]:.2f}")  # Running total from last visit
+        else:
+            print("No records found for this team.")
+
+    # --------------------------
+    # Option 3: Exit program
+    # --------------------------
+    elif choice == "3":
+        print("Exiting program. Goodbye!")
+        break  # Exit the infinite menu loop
+
+    # --------------------------
+    # Handle invalid menu choices
+    # --------------------------
+    else:
+        print("Invalid choice. Try again.")
+
+# --------------------------
+# Close database connection
+# --------------------------
+conn.close()  # Always close the database when done
