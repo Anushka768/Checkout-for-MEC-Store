@@ -7,7 +7,7 @@ import difflib    # Helps suggest correct item names if the user makes a typo
 # --------------------------
 # Connect to SQLite database
 # --------------------------
-conn = sqlite3.connect("store.db")  # Connects to (or creates) a database file named 'store.db'
+conn = sqlite3.connect("master_store.db")  # Connects to (or creates) a database file named 'store.db'
 cur = conn.cursor()                 # Cursor object allows us to execute SQL commands
 
 # --------------------------
@@ -29,69 +29,47 @@ CREATE TABLE IF NOT EXISTS purchases (
 # Define item prices
 # --------------------------
 item_prices = {               # Dictionary mapping item names to their price per unit
-    "popsicle sticks": 0.25,
-    "wooden skewers": 0.25,
-    "toothpicks": 0.1,
-    "drinking straws": 0.15,
-    "string & twine": 0.5,
-    "plastic bags": 0.2,
-    "trash bags": 0.2,
-    "cellophane bags": 0.2,
-    "bubble wrap": 0.3,
-    "newspaper": 0.1,
-    "magazines": 0.1,
-    "tarp": 1.5,
-    "plastic tablecloths": 1.5,
-    "aluminum foil": 0.4,
-    "cling wrap": 0.4,
-    "parchment paper": 0.4,
-    "cardboard sheets": 0.5,
-    "construction paper": 0.2,
-    "shelf liner": 0.6,
-    "foam sheets": 0.75,
-    "styrofoam": 0.75,
-    "duct tape": 1.25,
-    "masking tape": 1.25,
-    "binder clips": 0.25,
-    "clothespins": 0.25,
-    "rubber bands": 0.1,
-    "twist ties": 0.1,
-    "zip ties": 0.15,
-    "pipe cleaners": 0.2,
-    "paper clips": 0.1,
-    "thumb tacks": 0.15,
-    "foam packing material": 0.2,
-    "cotton pads": 0.2,
-    "sponges": 0.5,
-    "towels": 1,
-    "old rags": 1,
-    "plastic cups": 0.2,
-    "balloons": 0.15,
-    "labels": 0.1,
-    "old cds": 0.2,
-    "old dvds": 0.2,
-    "ziplock bags": 0.2,
-    "syringes": 0.5,
-    "pasta shells": 0.1,
-    "plastic cutlery": 0.15,
-    "wood cutlery": 0.15,
-    "water spray": 1,
-    "fan": 5,
-    "decorative tape": 0.75,
-    "jute rolls": 1,
-    "wrapping tissue": 0.3,
-    "rubber pipe pieces": 1,
-    "pvc pipe pieces": 1,
-    "velcro strips": 0.5,
-    "snap buttons": 0.5,
-    "plastic bottles": 0.25,
-    "recycled plastic containers": 0.2,
-    "index cards": 0.15,
-    "old greeting cards": 0.15,
-    "old clothes": 1,
-    "clear vinyl tubing": 2,
-    "plant trays": 0.75,
-    "miscellaneous": 0.3
+    "Rulers": 1.00,
+    "Sharpies / markers (coloured variety)": 1.50,
+    "Popsicle sticks": 0.25,
+    "Wooden skewers": 0.25,
+    "Toothpicks": 0.10,
+    "Drinking straws": 0.15,
+    "String & twine": 0.50,
+    "Plastic bags / trash bags / cellophane bags": 0.20,
+    "Bubble wrap": 0.30,
+    "Newspaper / magazines": 0.10,
+    "Tarp / plastic tablecloths": 1.50,
+    "Aluminum foil (20cm x 30cm)": 0.40,
+    "Cling wrap / parchment paper (20x30cm)": 0.40,
+    "Cardboard sheets": 0.50,
+    "Construction paper (colorful)": 0.20,
+    "Shelf liner": 0.60,
+    "Foam sheets": 0.75,
+    "Binder clips / clothespins": 0.25,
+    "Rubber bands": 0.10,
+    "Twist ties": 0.10,
+    "Zip ties": 0.15,
+    "Pipe cleaners": 0.20,
+    "Paper clips": 0.10,
+    "Thumb tacks": 0.15,
+    "Foam packing material": 0.20,
+    "Cotton pads": 0.20,
+    "Sponge pieces": 0.50,
+    "Towels / old rags": 1.00,
+    "Plastic cups (small and regular size)": 0.20,
+    "Balloons": 0.15,
+    "Labels": 0.10,
+    "Ziplock bags": 0.20,
+    "Syringes": 0.50,
+    "Pasta shells": 0.10,
+    "Plastic cutlery": 0.15,
+    "Decorative tape": 0.75,
+    "Jute rolls 20x30cm": 1.00,
+    "Wrapping tissue": 0.30,
+    "Velcro strips": 0.50,
+    "Index cards / old greeting cards": 0.15
+
 }
 
 print("\n==== JUNIOR DESIGN STORE CHECKOUT ====\n")  # Header for the program
@@ -144,7 +122,7 @@ while True:  # Infinite loop to keep the menu running until the user chooses to 
                 while True:
                     qty_input = input(f"Enter quantity for '{item}' (or type 'exit' to cancel): ").strip().lower()
                     if qty_input == "exit":
-                        print("Purchase canceled. Returning to main menu.")
+                        print("Purchase cancelled. Returning to main menu.")
                         visit_total = 0
                         item_count = 0
                         items = []
